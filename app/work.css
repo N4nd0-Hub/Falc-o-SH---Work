@@ -155,7 +155,7 @@ a{color:inherit}
 
 .login-wrap{min-height:100vh;display:grid;place-items:center;background:#f1f1ef;padding:20px}
 .login{background:#fff;border-radius:20px;padding:34px;width:min(440px,100%);display:grid;gap:16px;box-shadow:0 20px 60px #0000001a}
-.login .brand-mark{width:52px;height:52px;border:2px solid #111;border-radius:12px;display:grid;place-items:center;font:800 28px Manrope;transform:skew(-5deg)}
+.login .brand-mark{color:#111;width:52px;height:52px;border:2px solid #111;border-radius:12px;display:grid;place-items:center;font:800 28px Manrope;transform:skew(-5deg)}
 .login h1{font:800 26px Manrope;margin:0}
 .login .tabs{display:grid;grid-template-columns:1fr 1fr;background:#f1f1ef;border-radius:12px;padding:4px}
 .login .tabs button{border:0;background:transparent;border-radius:9px;padding:10px;font-weight:700}
