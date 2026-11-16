@@ -28,11 +28,21 @@ type ItemBusca = Record<string, unknown> & {
 };
 
 export async function buscarPncp(palavra: string, ufs: string[], pagina = 1, tamanho = 50): Promise<{ total: number; itens: ResultadoBusca[] }> {
-  const q = palavra.includes(" ") ? `"${palavra}"` : palavra;
-  const params = new URLSearchParams({ q, tipos_documento: "edital", ordenacao: "-data", pagina: String(pagina), tam_pagina: String(tamanho), status: "recebendo_proposta" });
-  if (ufs.length) params.set("ufs", ufs.join("|"));
-  const r = await fetch(`${PNCP}/api/search/?${params}`, { headers: UA, next: { revalidate: 900 } });
-  if (!r.ok) throw new Error(`PNCP respondeu ${r.status}`);
+  const montar = (q: string) => {
+    const p: [string, string][] = [["q", q], ["tipos_documento", "edital"], ["ordenacao", "-data"], ["pagina", String(pagina)], ["tam_pagina", String(tamanho)], ["status", "recebendo_proposta"]];
+    if (ufs.length) p.push(["ufs", ufs.join("|")]);
+    return `${PNCP}/api/search/?` + p.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+  };
+  const tentativas = palavra.includes(" ") ? [`"${palavra}"`, palavra] : [palavra];
+  let r: Response | null = null;
+  for (const q of tentativas) {
+    for (let i = 0; i < 2; i++) {
+      r = await fetch(montar(q), { headers: UA, next: { revalidate: 900 } }).catch(() => null);
+      if (r?.ok) break;
+    }
+    if (r?.ok) break;
+  }
+  if (!r?.ok) throw new Error(`PNCP respondeu ${r?.status ?? "sem resposta"}`);
   const j = (await r.json()) as { total: number; items: ItemBusca[] };
   const itens = (j.items || []).filter(i => !i.cancelado).map(i => ({
     pncp_id: i.numero_controle_pncp,
