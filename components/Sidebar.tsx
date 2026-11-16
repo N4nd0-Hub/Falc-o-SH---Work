@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calculator, Building2, FolderLock, Home, LogOut, Search } from "lucide-react";
+import { Award, Calculator, Building2, FolderLock, Home, LogOut, Search } from "lucide-react";
 import { useAuth } from "./Auth";
 
 export const NAV = [
   { href: "/", label: "Início", icon: Home },
   { href: "/licitacoes", label: "Licitações", icon: Search },
   { href: "/documentos", label: "Documentos", icon: FolderLock },
+  { href: "/acervo", label: "Acervo técnico", icon: Award },
   { href: "/orcamentos", label: "Orçamentos", icon: Calculator },
   { href: "/empresa", label: "Empresa", icon: Building2 },
 ];
@@ -32,7 +33,7 @@ export default function Sidebar({ extra }: { extra?: React.ReactNode }) {
 
 export function MobileTabs() {
   const path = usePathname();
-  return <nav className="mobile-tabs">{NAV.map(n => <Link key={n.href} href={n.href} className={ativo(path, n.href) ? "active" : ""}><n.icon />{n.label}</Link>)}</nav>;
+  return <nav className="mobile-tabs">{NAV.map(n => <Link key={n.href} href={n.href} className={ativo(path, n.href) ? "active" : ""}><n.icon />{n.label.split(" ")[0]}</Link>)}</nav>;
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {

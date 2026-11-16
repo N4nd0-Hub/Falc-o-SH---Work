@@ -201,7 +201,7 @@ a{color:inherit}
   .kv{grid-template-columns:1fr}
   .kv dt{margin-top:6px}
   .work-shell>.sidebar{display:none}
-  .mobile-tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;background:#0a0a0a;z-index:40;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .mobile-tabs{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;background:#0a0a0a;z-index:40;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
   .mobile-tabs a{color:#999;text-decoration:none;display:grid;justify-items:center;gap:3px;font-size:11px;font-weight:700;padding:6px 0}
   .mobile-tabs a.active{color:#fff}
   .mobile-tabs svg{width:22px;height:22px}
@@ -214,3 +214,20 @@ a{color:inherit}
   .page{padding:0}
   .card{box-shadow:none;break-inside:avoid}
 }
+
+.serv-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.serv-table th{text-align:left;font-size:11px;letter-spacing:.08em;color:#777;border-bottom:1px solid #ddd;padding:6px}
+.serv-table td{border-bottom:1px solid #f0f0f0;padding:6px;vertical-align:top}
+.serv-table td.q{text-align:right;white-space:nowrap;font-weight:700}
+.serv-table input{width:100%;border:1px solid #ddd;border-radius:6px;padding:6px;font:inherit}
+.serv-table input.qn{text-align:right;width:100px}
+.serv-table input.un{width:60px}
+.obra-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;background:#fcfcfc}
+.obra-box .meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:13px}
+.acervo-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.acervo-card+.acervo-card{margin-top:10px}
+.acervo-card h3{margin:6px 0 2px;font:800 17px Manrope}
+.big-search{display:flex;gap:10px;align-items:center;border:2px solid #111;border-radius:14px;padding:6px 6px 6px 14px;background:#fff}
+.big-search input{border:0;outline:0;flex:1;font-size:16px;padding:10px 0;min-width:0}
+.match-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 0;border-bottom:1px solid #eee}
+.match-row:last-child{border-bottom:0}

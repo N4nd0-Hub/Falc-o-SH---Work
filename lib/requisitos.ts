@@ -3,6 +3,7 @@
 
 import { TIPOS, tipoPorId, diasAte } from "./catalogo-docs";
 import type { Documento, Empresa } from "./supabase";
+import { compararAcervo, extrairParcelas, type Acervo, type Comparacao } from "./acervo";
 
 export type ArquivoTexto = { titulo: string; paginas: number; texto: string; aviso?: string };
 
@@ -56,6 +57,7 @@ export type Relatorio = {
   itens: ItemRelatorio[];
   alertas: Alerta[];
   resumo: { ok: number; pendentes: number; total: number };
+  parcelas?: Comparacao[];
 };
 
 function trechoEm(textoOriginal: string, textoNorm: string, idx: number, tam = 260) {
@@ -83,8 +85,10 @@ export function gerarRelatorio(opts: {
   empresa: Empresa | null;
   abertura: string | null; // data limite das propostas
   valorEstimado: number | null;
+  acervos?: Acervo[];
 }): Relatorio {
   const { documentos, empresa, abertura, valorEstimado } = opts;
+  const acervos = opts.acervos || [];
   const arquivos = opts.arquivos.filter(a => a.texto && a.texto.trim().length > 200).map(a => {
     const orig = a.texto.replace(/\s+/g, " ");
     return { titulo: a.titulo, orig, n: norm(orig) };
@@ -119,6 +123,10 @@ export function gerarRelatorio(opts: {
         situacao = situacao === "ok" ? "conferir" : situacao;
         explicacao = `${docs.length} no cofre. Confira se algum comprova serviço parecido e com a quantidade mínima pedida no edital (veja o trecho).`;
       }
+    }
+    if ((r.doc === "cat" || r.doc === "atestado_capacidade") && situacao === "falta") {
+      const doAcervo = acervos.filter(a => r.doc === "cat" ? a.tipo === "cat" || a.tipo === "cao" : a.tipo === "atestado" || a.tipo === "cao");
+      if (doAcervo.length) { situacao = "conferir"; explicacao = `${doAcervo.length} no Acervo técnico (${doAcervo.map(a => a.numero ? `nº ${a.numero}` : a.titulo.split(" — ")[0]).slice(0, 4).join(", ")}). Veja abaixo a comparação com as parcelas de maior relevância.`; }
     }
     itens.push({ id: r.id, doc: r.doc, nome: tipo.nome, grupo: tipo.grupo, detectado: !!achado, trecho: achado?.trecho, arquivoEdital: achado?.arquivo, situacao, explicacao, documentoId });
   }
@@ -194,6 +202,15 @@ export function gerarRelatorio(opts: {
     if (faltandoNoTexto.length) alertas.push({ tipo: "info", titulo: "Não encontrados no texto do edital", texto: `Não achei menção a: ${faltandoNoTexto.join("; ")}. Pode ser que o edital use outras palavras. Vale conferir.` });
   }
 
+  let parcelas: Comparacao[] | undefined;
+  if (editalLido) {
+    const exig = extrairParcelas(arquivos.map(a => a.orig).join(" \n "));
+    if (exig.length) {
+      parcelas = compararAcervo(exig, acervos);
+      const falhas = parcelas.filter(p => p.situacao === "nao_encontrado" || p.situacao === "insuficiente").length;
+      if (parcelas.length && !falhas) itens.filter(i => i.doc === "cat" || i.doc === "atestado_capacidade").forEach(i => { if (i.situacao === "conferir") { i.situacao = "ok"; i.explicacao = "O acervo cobre todas as parcelas de maior relevância encontradas no edital (veja a comparação)."; } });
+    }
+  }
   const ok = itens.filter(i => i.situacao === "ok").length;
   return {
     geradoEm: new Date().toISOString(),
@@ -202,6 +219,7 @@ export function gerarRelatorio(opts: {
     itens,
     alertas,
     resumo: { ok, pendentes: itens.length - ok, total: itens.length },
+    parcelas,
   };
 }
 

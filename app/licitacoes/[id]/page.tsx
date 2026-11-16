@@ -9,6 +9,7 @@ import { sb, type Licitacao } from "@/lib/supabase";
 import { gerarRelatorio, type ArquivoTexto, type Relatorio, type Situacao } from "@/lib/requisitos";
 import { lerPdfNoNavegador } from "@/lib/pdf-cliente";
 import type { Arquivo } from "@/lib/pncp";
+import { fmtQ, type Acervo } from "@/lib/acervo";
 
 type Detalhes = { objeto?: string; complemento?: string | null; abertura?: string | null; encerramento?: string | null; link_origem?: string | null; modalidade?: string; modo_disputa?: string; numero?: string; processo?: string; amparo?: string; situacao?: string; arquivos?: Arquivo[] };
 type Orc = { id: string; titulo: string; valor_proposta: number | null; atualizado_em: string };
@@ -53,8 +54,8 @@ export default function LicitacaoPage({ params }: { params: Promise<{ id: string
 
   async function relatorioCom(arquivos: ArquivoTexto[]) {
     setGerando("Comparando com os documentos do cofre…");
-    const [documentos, empresa] = await Promise.all([carregarDocumentos(), carregarEmpresa()]);
-    const r = gerarRelatorio({ arquivos, documentos, empresa, abertura: lic?.abertura || null, valorEstimado: lic?.valor_estimado ?? null });
+    const [documentos, empresa, ac] = await Promise.all([carregarDocumentos(), carregarEmpresa(), sb().from("acervos").select("*")]);
+    const r = gerarRelatorio({ arquivos, documentos, empresa, abertura: lic?.abertura || null, valorEstimado: lic?.valor_estimado ?? null, acervos: (ac.data || []) as Acervo[] });
     setRel(r);
     await sb().from("licitacoes").update({ relatorio: r, relatorio_em: r.geradoEm, situacao: lic?.situacao === "interesse" ? "analisando" : lic?.situacao }).eq("id", id);
     if (lic?.situacao === "interesse") setLic({ ...lic, situacao: "analisando" });
@@ -154,8 +155,21 @@ export default function LicitacaoPage({ params }: { params: Promise<{ id: string
         <div style={{ marginTop: 10 }}>{[...rel.itens].sort((a, b) => ["bad", "warn", "ok"].indexOf(VISUAL[a.situacao].cls) - ["bad", "warn", "ok"].indexOf(VISUAL[b.situacao].cls)).map(i => { const v = VISUAL[i.situacao]; return <div className="report-item" key={i.id}>
           <div className={`ico ${v.cls}`}><v.Icon style={{ width: 18 }} /></div>
           <div><h3>{i.nome}</h3><p>{i.explicacao}</p>{i.trecho && <details><summary>O que o edital diz{i.arquivoEdital ? ` (${i.arquivoEdital})` : ""}</summary><div className="trecho">“{i.trecho}”</div></details>}{!i.detectado && <p className="help">Item padrão (o edital não foi lido).</p>}</div>
-          <div className="no-print">{v.cls !== "ok" ? <Link href="/documentos" className="btn small">{i.situacao === "falta" ? <><Plus /> Cadastrar</> : "Resolver"}</Link> : <span className={`pill ${v.cls}`}>{v.nome}</span>}</div>
+          <div className="no-print">{v.cls !== "ok" ? <Link href={i.doc === "cat" || i.doc === "atestado_capacidade" ? "/acervo" : "/documentos"} className="btn small">{i.situacao === "falta" ? <><Plus /> Cadastrar</> : "Resolver"}</Link> : <span className={`pill ${v.cls}`}>{v.nome}</span>}</div>
         </div>; })}</div>
+        {rel.parcelas && rel.parcelas.length > 0 && <div style={{ marginTop: 20 }}>
+          <h3 style={{ fontSize: 18 }}>Experiência exigida × nosso acervo</h3>
+          <p className="help" style={{ marginTop: 2 }}>Parcelas de maior relevância encontradas no edital, comparadas com os serviços do Acervo técnico. Confira se o edital permite somar atestados.</p>
+          {rel.parcelas.map((p, k) => { const cls = p.situacao === "atende" ? "ok" : p.situacao === "nao_encontrado" ? "bad" : "warn"; const Ic = cls === "ok" ? CheckCircle2 : cls === "bad" ? XCircle : AlertTriangle; return <div className="report-item" key={k}>
+            <div className={`ico ${cls}`}><Ic style={{ width: 18 }} /></div>
+            <div><h3>Exigido: {p.exigencia.descricao} — {fmtQ(p.exigencia.quantidade, p.exigencia.unidade)}</h3>
+              <p>{p.situacao === "atende" ? `Atende: ${fmtQ(p.melhor!.quantidade, p.exigencia.unidade)} em ${p.melhor!.acervo}.` : p.situacao === "atende_somando" ? `Atende somando atestados: total de ${fmtQ(p.soma, p.exigencia.unidade)} (maior sozinho: ${fmtQ(p.melhor!.quantidade, p.exigencia.unidade)}).` : p.situacao === "insuficiente" ? `Não atende: o acervo soma ${fmtQ(p.soma, p.exigencia.unidade)}.` : "Não encontrei serviço parecido no acervo. Confira manualmente ou cadastre o acervo que comprova."}</p>
+              {p.achados.length > 0 && <details><summary>Serviços do acervo considerados ({p.achados.length})</summary>{p.achados.map((x, j) => <div key={j}>• {x.servico} — <b>{fmtQ(x.quantidade, p.exigencia.unidade)}</b> <span className="muted">({x.acervo}{x.obra ? `, ${x.obra}` : ""})</span></div>)}</details>}
+              <details><summary>Trecho do edital</summary><div className="trecho">“…{p.exigencia.trecho}…”</div></details>
+            </div>
+            <div className="no-print"><span className={`pill ${cls}`}>{p.situacao === "atende" ? "Atende" : p.situacao === "atende_somando" ? "Somando" : p.situacao === "insuficiente" ? "Insuficiente" : "Não achei"}</span></div>
+          </div>; })}
+        </div>}
         <p className="help" style={{ marginTop: 12 }}>⚠️ Leitura automática por palavras-chave. Use como checklist e confirme no edital antes de enviar a proposta.</p>
       </>}
     </div>
